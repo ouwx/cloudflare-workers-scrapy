@@ -1,16 +1,27 @@
 {
   "compatibility_date": "2025-04-01",
   "main": "src/index.ts",
-  "name": "d1-template",
+  "name": "scrapy-stock",
   "upload_source_maps": true,
   "d1_databases": [
     {
       "binding": "DB",
-      "database_id": "151f7d9b-365f-41d7-83ed-0bf4eeef5086",
-      "database_name": "d1-template-database"
+      "database_name": "scrapy-database",
+      "database_id": "c26a49db-af48-4df0-bb1a-614aa2c02508"
+    }
+  ],
+   "kv_namespaces": [
+    {
+      "binding": "KV",
+      "id": "c42e61f692f147b19cd716d4ded76875"
     }
   ],
   "observability": {
     "enabled": true
+  },
+  "triggers": {
+    "crons": [
+      "*/15 8 * * 1-5",
+    ]
   }
 }

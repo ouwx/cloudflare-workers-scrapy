@@ -46,12 +46,12 @@ A live public deployment of this template is available at [https://d1-template.t
    ```
 2. Create a [D1 database](https://developers.cloudflare.com/d1/get-started/) with the name "d1-template-database":
    ```bash
-   npx wrangler d1 create d1-template-database
+   npx wrangler d1 create scrapy-database
    ```
    ...and update the `database_id` field in `wrangler.json` with the new database ID.
 3. Run the following db migration to initialize the database (notice the `migrations` directory in this project):
    ```bash
-   npx wrangler d1 migrations apply --remote d1-template-database
+   npx wrangler d1 migrations apply --remote scrapy-database
    ```
 4. Deploy the project!
    ```bash
