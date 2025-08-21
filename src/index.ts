@@ -12,70 +12,9 @@ export default {
     }
     // 首页查询框和自动补全
     if (url.pathname === "/") {
-      const { renderHtml } = await import("./renderHtml.js");
-      const form = [
-        '<form id="searchForm" style="margin-bottom:2em;" autocomplete="off">',
-        '  <label for="code">ETF code/名称 查询：</label>',
-        '  <input type="text" id="code" name="code" required list="suggest-list" />',
-        '  <datalist id="suggest-list"></datalist>',
-        '  <button type="submit">查询</button>',
-        '</form>',
-        '<div id="result"></div>',
-        '<script>',
-        'const input = document.getElementById("code");',
-        'const datalist = document.getElementById("suggest-list");',
-        'const resultDiv = document.getElementById("result");',
-        'async function doQuery(code) {',
-        '  if (!code) return;',
-        '  const formData = new FormData();',
-        '  formData.append("code", code);',
-        '  const resp = await fetch("/", { method: "POST", body: formData });',
-        '  const html = await resp.text();',
-        '  resultDiv.innerHTML = html.match(/<main>([\s\S]*)<\/main>/)?.[1] || html;',
-        '}',
-        'input.addEventListener("input", async function(e) {',
-        '  const val = input.value;',
-        '  if (val.length > 2) {',
-        '    const resp = await fetch("/suggest?q=" + encodeURIComponent(val));',
-        '    const arr = await resp.json();',
-        '    datalist.innerHTML = arr.map(function(item) { return `<option value=\'${item.code}\'>${item.code} - ${item.name}</option>`; }).join("");',
-        '    doQuery(val);',
-        '  } else {',
-        '    datalist.innerHTML = "";',
-        '    resultDiv.innerHTML = "";',
-        '  }',
-        '});',
-        'document.getElementById("searchForm").addEventListener("submit", async function(e) {',
-        '  e.preventDefault();',
-        '  doQuery(input.value);',
-        '});',
-        '</script>'
-      ].join('');
-      return new Response(renderHtml(form), { headers: { "content-type": "text/html;charset=UTF-8" } });
+      
     }
 
-    // 自动补全建议接口
-    if (url.pathname === "/suggest" && request.method === "GET") {
-      const q = url.searchParams.get("q")?.trim();
-      if (!q || q.length < 2) return new Response(JSON.stringify([]), { headers: { "content-type": "application/json" } });
-      // 这里假设 KV 里 key 是 code，value 是 name，遍历所有 key 并模糊匹配
-      // Cloudflare KV 没有直接模糊查询，只能用 list + get
-      const list = await env.KV.list();
-      const result = [];
-      for (const { name: code } of list.keys) {
-        if (result.length >= 10) break;
-        if (code.includes(q)) {
-          const name = await env.KV.get(code);
-          result.push({ code, name });
-        } else {
-          const name = await env.KV.get(code);
-          if (name && name.includes(q)) {
-            result.push({ code, name });
-          }
-        }
-      }
-      return new Response(JSON.stringify(result), { headers: { "content-type": "application/json" } });
-    }
     return new Response("Not Found", { status: 404 });
   }
 };
