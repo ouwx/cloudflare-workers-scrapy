@@ -67,6 +67,19 @@ async function fetchNews(env) {
     // 只保留2天内的新闻
     .filter(item => item.pubDateObj && item.pubDateObj >= twoDaysAgo);
 
+    // 用 items 的 guid 组合计算 md5
+    const guidConcat = items.map(item => item.guid).join(',');
+    const md5 = await getMD5(guidConcat);
+    const kvKey = 'fetchNews_MD5';
+    const oldMd5 = await env.KV.get(kvKey);
+    console.log(`旧MD5: ${oldMd5}, 新MD5: ${md5}`);
+    if (oldMd5 === md5) {
+      console.log('新闻MD5未变化，跳过写入');
+      return new Response('新闻数据未变化，无需更新');
+    }
+    // 不同则继续处理并更新 KV
+    await env.KV.put(kvKey, md5);
+
     // 插入数据库
     const sql = `
       INSERT OR REPLACE INTO news (guid, title, description, link, pubDate)
@@ -112,9 +125,18 @@ async function fetchETF(env) {
       if (!jsonMatch) continue;
 
       const data = JSON.parse(jsonMatch[1]);
+      // 计算 data 的 md5
+      const md5 = await getMD5(JSON.stringify(data));
+      // 先获取 KV 里的 md5
+      const kvKey = 'fetchETF_MD5';
+      const oldMd5 = await env.KV.get(kvKey);
+      if (oldMd5 === md5) {
+        return new Response('ETF 数据未变化，无需更新');
+      }
+      // 不同则写数据库并更新 KV
+      await env.KV.put(kvKey, md5);
       for (const item of data) {
         //写入KV
-        //await env.KV.put(item.code, item.name);
         allRecords.push([
           item.code,
           today,
@@ -154,4 +176,12 @@ async function fetchETF(env) {
   }
 
   return new Response(`ETF 数据抓取完成，共 ${allRecords.length} 条记录`);
+}
+
+// 计算字符串的 MD5 值
+async function getMD5(str: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const dataBuf = encoder.encode(str);
+  const hashBuf = await crypto.subtle.digest('MD5', dataBuf);
+  return Array.from(new Uint8Array(hashBuf)).map(b => b.toString(16).padStart(2, '0')).join('');
 }
