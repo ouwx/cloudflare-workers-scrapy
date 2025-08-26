@@ -82,7 +82,7 @@ async function fetchNews(env) {
 
     // 插入数据库
     const sql = `
-      INSERT OR REPLACE INTO news (guid, title, description, link, pubDate)
+      INSERT OR IGNORE INTO news (guid, title, description, link, pubDate)
       VALUES (?, ?, ?, ?, ?);
     `;
     try {
