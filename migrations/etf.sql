@@ -15,3 +15,12 @@ CREATE TABLE ETF (
     amount INTEGER,                 -- 成交额
     PRIMARY KEY (code, date)
 );
+
+CREATE TABLE news (
+    guid TEXT PRIMARY KEY,       -- 唯一标识
+    title TEXT NOT NULL,         -- 新闻标题
+    description TEXT,            -- 新闻摘要
+    link TEXT,                   -- 新闻链接
+    pubDate TEXT                 -- 发布时间 (存储为 YYYY-MM-DD HH:MM:SS 格式)
+);
+

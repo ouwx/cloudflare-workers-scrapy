@@ -10,14 +10,86 @@ export default {
     if (url.pathname === "/scrapy-etf") {
       return fetchETF(env);
     }
+    // 新增 /news 路由，抓取 WSJ 中文网 RSS
+    if (url.pathname === "/news") {
+      return fetchNews(env);
+    }
     // 首页查询框和自动补全
     if (url.pathname === "/") {
-      
+      // ...existing code...
     }
 
     return new Response("Not Found", { status: 404 });
-  }
+
+      }
 };
+
+// 抓取华尔街日报中文网新闻 RSS 内容
+async function fetchNews(env) {
+  const rssUrl = "https://cn.wsj.com/zh-hans/rss";
+  try {
+    const resp = await fetch(rssUrl, {
+      headers: { "User-Agent": "Mozilla/5.0" }
+    });
+    const xml = await resp.text();
+
+    // 提取 <item> 块
+    const now = new Date();
+    const twoDaysAgo = new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000);
+    const items = Array.from(xml.matchAll(/<item>([\s\S]*?)<\/item>/g)).map(match => {
+      let title = match[1].match(/<title>([\s\S]*?)<\/title>/)?.[1]?.trim() || "";
+      let description = match[1].match(/<description>([\s\S]*?)<\/description>/)?.[1]?.trim() || "";
+      const link = match[1].match(/<link>([\s\S]*?)<\/link>/)?.[1]?.trim() || "";
+      let guid = match[1].match(/<guid[^>]*>([\s\S]*?)<\/guid>/)?.[1]?.trim() || "";
+      let pubDate = match[1].match(/<pubDate>([\s\S]*?)<\/pubDate>/)?.[1]?.trim() || "";
+
+
+      // 去掉 <![CDATA[ ]]> 包裹
+      title = title.replace(/^<!\[CDATA\[|\]\]>$/g, "");
+      description = description.replace(/^<!\[CDATA\[|\]\]>$/g, "");
+
+      // 去掉 HTML 标签
+      description = description.replace(/<[^>]+>/g, "").trim();
+
+      // pubDate 格式化为 YYYY-MM-DD HH:MM:SS
+      let pubDateObj: Date | null = null;
+      if (pubDate) {
+        const d = new Date(pubDate);
+        if (!isNaN(d.getTime())) {
+          pubDateObj = d;
+          const pad = (n: number) => n.toString().padStart(2, '0');
+          pubDate = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+        }
+      }
+
+      return { title, description, link, guid, pubDate, pubDateObj };
+    })
+    // 只保留2天内的新闻
+    .filter(item => item.pubDateObj && item.pubDateObj >= twoDaysAgo);
+
+    // 插入数据库
+    const sql = `
+      INSERT OR REPLACE INTO news (guid, title, description, link, pubDate)
+      VALUES (?, ?, ?, ?, ?);
+    `;
+    try {
+      const stmts = items.map(item => env.DB.prepare(sql).bind(item.guid, item.title, item.description, item.link, item.pubDate));
+      await env.DB.batch(stmts);
+    } catch (err) {
+      console.error("批量插入新闻失败:", err);
+      return new Response("新闻入库失败", { status: 500 });
+    }
+
+    // 返回插入的新闻
+    return new Response(JSON.stringify(items.map(({pubDateObj, ...rest}) => rest), null, 2), {
+      headers: { "Content-Type": "application/json; charset=utf-8" }
+    });
+  } catch (err) {
+    console.error("抓取新闻失败:", err);
+    return new Response("新闻抓取失败", { status: 500 });
+  }
+}
+
 
 async function fetchETF(env) {
   const today = new Date().toISOString().split("T")[0];
@@ -42,7 +114,7 @@ async function fetchETF(env) {
       const data = JSON.parse(jsonMatch[1]);
       for (const item of data) {
         //写入KV
-        await env.KV.put(item.code, item.name);
+        //await env.KV.put(item.code, item.name);
         allRecords.push([
           item.code,
           today,
