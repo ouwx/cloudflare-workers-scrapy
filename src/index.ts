@@ -131,6 +131,7 @@ async function fetchETF(env) {
       const kvKey = 'fetchETF_MD5';
       const oldMd5 = await env.KV.get(kvKey);
       if (oldMd5 === md5) {
+        console.log('ETF 数据未变化，无需更新');
         return new Response('ETF 数据未变化，无需更新');
       }
       // 不同则写数据库并更新 KV
