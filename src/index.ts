@@ -186,8 +186,8 @@ async function fetchETF(env) {
   } catch (err) {
     console.error("批量插入失败:", err);
   }
-
-  return new Response(`ETF 数据抓取完成，共 ${filteredRecords.length} 条记录`);
+  console.log(`成功插入 ${filteredRecords.length} 条 ETF 记录`);
+  return new Response(`ETF 数据抓取完成，共插入 ${filteredRecords.length} 条记录`);
 }
 
 // 计算字符串的 MD5 值
