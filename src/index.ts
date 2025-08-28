@@ -161,6 +161,18 @@ async function fetchETF(env) {
 
   console.log(`总共抓取到 ${allRecords.length} 条记录`);
 
+  // 过滤掉 trade === 0 的记录
+  const beforeFilterCount = allRecords.length;
+  const filteredRecords = allRecords.filter(row => {
+    const trade = row[3];
+    // 过滤掉为 0 或 非数值的 trade
+    return trade !== 0 && !Number.isNaN(trade);
+  });
+  const removedCount = beforeFilterCount - filteredRecords.length;
+  if (removedCount > 0) {
+    console.log(`过滤掉 ${removedCount} 条 trade=0 的记录`);
+  }
+
   // 3️⃣ 插入数据
   const sql = `
     INSERT OR REPLACE INTO ETF  
@@ -169,13 +181,13 @@ async function fetchETF(env) {
   `;
 
   try {
-    const stmts = allRecords.map(row => env.DB.prepare(sql).bind(...row));
+    const stmts = filteredRecords.map(row => env.DB.prepare(sql).bind(...row));
     await env.DB.batch(stmts);
   } catch (err) {
     console.error("批量插入失败:", err);
   }
 
-  return new Response(`ETF 数据抓取完成，共 ${allRecords.length} 条记录`);
+  return new Response(`ETF 数据抓取完成，共 ${filteredRecords.length} 条记录`);
 }
 
 // 计算字符串的 MD5 值
