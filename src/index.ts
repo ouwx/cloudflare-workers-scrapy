@@ -1,3 +1,5 @@
+import { fetchSseETFProxy } from './sseQueryProxy';
+
 export default {
   // 定时任务触发
   async scheduled(event, env, ctx) {
@@ -13,6 +15,11 @@ export default {
     // 新增 /news 路由，抓取 WSJ 中文网 RSS
     if (url.pathname === "/news") {
       return fetchNews(env);
+    }
+    // 新增 /sse-etf 路由，代理上交所 ETF 接口并返回 JSON
+    if (url.pathname === "/sse-etf") {
+      // 将请求传入代理函数，允许 query 覆盖（如 sqlId/page/pageSize/STAT_DATE）
+      return fetchSseETFProxy(request, env);
     }
     // 首页查询框和自动补全
     if (url.pathname === "/") {
